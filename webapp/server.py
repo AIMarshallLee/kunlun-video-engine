@@ -23,6 +23,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from gradio_client import Client, handle_file
+from webapp.machine_api import install_machine_api, router as machine_api_router
 
 
 ROOT = Path(os.environ.get("CS_BOARD_ROOT", Path(__file__).resolve().parents[1])).expanduser().resolve()
@@ -3005,6 +3006,9 @@ def resume_pending_jobs() -> None:
 
 restore_jobs()
 resume_pending_jobs()
+
+install_machine_api(globals())
+app.include_router(machine_api_router)
 
 
 @app.get("/api/health")

@@ -1,3 +1,67 @@
+# Kunlun Video Engine
+
+昆仑增长内容工厂的视频生产引擎。基于 cs-board（MIT）改造，保留本地音色克隆、分镜、插画、白板动画、动态信息图、字幕、Whisper 对齐、Remotion/FFmpeg 合成、任务队列与断点恢复能力。
+
+> 定位：它不是选题/脚本中枢，而是给上游内容工作台调用的下游视频执行服务。
+
+## Kunlun Machine API V1
+
+### 创建视频任务
+
+```http
+POST /api/v1/video-jobs
+Content-Type: application/json
+```
+
+示例：
+
+```json
+{
+  "script": "这里是一段准备生成视频的完整中文脚本……",
+  "voice_id": "你的音色库 ID",
+  "style": "极简商务涂鸦风",
+  "aspect_ratio": "9:16",
+  "mode": "infographic",
+  "scenes_per_image": 2,
+  "task_name": "企业AI案例拆解",
+  "pen_text": "昆仑增长",
+  "include_key_text": true,
+  "include_subtitles": true,
+  "stroke_detail": "detailed",
+  "metadata": {
+    "source": "kunlun-content-workbench",
+    "content_id": "example-001"
+  }
+}
+```
+
+返回现有 Job snapshot，包括 `id`、`status`、`stage`、`progress`、`result_url`、`output_path` 等。
+
+### 查询任务
+
+```http
+GET /api/v1/video-jobs/{job_id}
+```
+
+### 推荐调用链
+
+```text
+Kunlun Radar
+  → 内容工作台（选题 / 观点 / 脚本）
+  → Kunlun Video Engine
+  → MP4
+  → 分发层
+```
+
+## Phase 1 原则
+
+- 复用原 cs-board pipeline，不复制生成逻辑。
+- 新增稳定 JSON machine API，隔离前端 multipart 表单细节。
+- 暂不重构 19 万字节级 `webapp/server.py`；先把服务边界跑通，再拆模块。
+- 保留上游 MIT License 与原作者版权声明。
+
+---
+
 # 有温度出品｜白板声画工坊
 
 > 把你的表达，做成一支会说话的视频。

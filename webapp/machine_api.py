@@ -14,15 +14,16 @@ router = APIRouter(prefix="/api/v1", tags=["kunlun-video-engine"])
 class VideoJobRequest(BaseModel):
     script: str = Field(min_length=10, max_length=20000)
     voice_id: str
-    style: str = "极简商务涂鸦风"
-    aspect_ratio: str = "9:16"
-    mode: str = "infographic"
-    scenes_per_image: int = Field(default=2, ge=1, le=4)
+    preset: str = "short-video"
+    style: str | None = None
+    aspect_ratio: str | None = None
+    mode: str | None = None
+    scenes_per_image: int | None = Field(default=None, ge=1, le=4)
     task_name: str = ""
-    pen_text: str = "昆仑增长"
-    include_key_text: bool = True
-    include_subtitles: bool = True
-    stroke_detail: str = "detailed"
+    pen_text: str | None = None
+    include_key_text: bool | None = None
+    include_subtitles: bool | None = None
+    stroke_detail: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -93,9 +94,20 @@ def install_machine_api(ns: dict[str, Any]) -> None:
     @router.post("/video-jobs", response_model=VideoJobCreated)
     def create_video_job(payload: VideoJobRequest, request: Request) -> dict[str, Any]:
         script = payload.script.strip()
-        if payload.mode not in {"standard", "infographic"}:
+        preset = KUNLUN_PRESETS.get(payload.preset)
+        if preset is None:
+            raise HTTPException(400, f"unknown preset: {payload.preset}")
+        style = payload.style or str(preset["style"])
+        aspect_ratio_raw = payload.aspect_ratio or str(preset["aspect_ratio"])
+        mode = payload.mode or str(preset["mode"])
+        scenes_per_image = payload.scenes_per_image or int(preset["scenes_per_image"])
+        pen_text = payload.pen_text if payload.pen_text is not None else str(preset["pen_text"])
+        include_key_text = payload.include_key_text if payload.include_key_text is not None else bool(preset["include_key_text"])
+        include_subtitles = payload.include_subtitles if payload.include_subtitles is not None else bool(preset["include_subtitles"])
+        stroke_detail = payload.stroke_detail or str(preset["stroke_detail"])
+        if mode not in {"standard", "infographic"}:
             raise HTTPException(400, "mode must be standard or infographic")
-        if payload.aspect_ratio not in {"16:9", "9:16", "1:1"}:
+        if aspect_ratio_raw not in {"16:9", "9:16", "1:1"}:
             raise HTTPException(400, "unsupported aspect_ratio")
 
         LOCK = ns["LOCK"]
@@ -123,9 +135,9 @@ def install_machine_api(ns: dict[str, Any]) -> None:
         reference_path = job_dir / f"reference{voice_path.suffix or '.wav'}"
         reference_path.write_bytes(voice_path.read_bytes())
 
-        aspect_ratio = normalize_aspect_ratio(payload.aspect_ratio)
+        aspect_ratio = normalize_aspect_ratio(aspect_ratio_raw)
         task_name = normalized_task_name(payload.task_name, script, job_id)
-        reference_mode = "infographic" if payload.mode == "infographic" else "standard"
+        reference_mode = "infographic" if mode == "infographic" else "standard"
         now = time.time()
 
         with LOCK:
@@ -141,9 +153,9 @@ def install_machine_api(ns: dict[str, Any]) -> None:
                 "queue_order": time.time_ns(),
                 "client_ip": request_client_ip(request),
                 "job_type": "infographic" if reference_mode == "infographic" else "generate",
-                "style": payload.style,
+                "style": style,
                 "aspect_ratio": aspect_ratio,
-                "scenes_per_image": payload.scenes_per_image,
+                "scenes_per_image": scenes_per_image,
                 "pipeline_version": pipeline_version if reference_mode == "infographic" else "standard_v1",
                 "reference_mode": reference_mode,
                 "character_count": 0,
@@ -152,10 +164,10 @@ def install_machine_api(ns: dict[str, Any]) -> None:
                 "visual_references": {},
                 "task_name": task_name,
                 "copy": script,
-                "pen_text": payload.pen_text.strip()[:12],
-                "include_key_text": payload.include_key_text,
-                "include_subtitles": payload.include_subtitles,
-                "stroke_detail": payload.stroke_detail if payload.stroke_detail in {"light", "standard", "detailed", "full"} else "detailed",
+                "pen_text": pen_text.strip()[:12],
+                "include_key_text": include_key_text,
+                "include_subtitles": include_subtitles,
+                "stroke_detail": stroke_detail if stroke_detail in {"light", "standard", "detailed", "full"} else "detailed",
                 "can_rerender": False,
                 "current_phase": None,
                 "phase_started_at": None,
@@ -168,13 +180,13 @@ def install_machine_api(ns: dict[str, Any]) -> None:
         VOICE_QUEUE.put((
             job_id,
             script,
-            payload.style,
+            style,
             reference_path,
-            payload.scenes_per_image,
-            payload.pen_text.strip()[:12],
-            payload.include_key_text,
-            payload.include_subtitles,
-            payload.stroke_detail,
+            scenes_per_image,
+            pen_text.strip()[:12],
+            include_key_text,
+            include_subtitles,
+            stroke_detail,
         ))
         ensure_pipeline_workers()
         return ns["job_snapshot"](job_id)

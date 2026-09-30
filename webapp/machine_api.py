@@ -35,8 +35,60 @@ class VideoJobCreated(BaseModel):
     output_path: str | None = None
 
 
+KUNLUN_PRESETS: dict[str, dict[str, Any]] = {
+    "short-video": {
+        "style": "极简商务涂鸦风",
+        "aspect_ratio": "9:16",
+        "mode": "infographic",
+        "scenes_per_image": 2,
+        "pen_text": "昆仑增长",
+        "include_key_text": True,
+        "include_subtitles": True,
+        "stroke_detail": "detailed",
+    },
+    "business-explainer": {
+        "style": "极简商务涂鸦风",
+        "aspect_ratio": "16:9",
+        "mode": "infographic",
+        "scenes_per_image": 2,
+        "pen_text": "昆仑增长",
+        "include_key_text": True,
+        "include_subtitles": True,
+        "stroke_detail": "detailed",
+    },
+    "high-impact": {
+        "style": "爆款高热吸睛风",
+        "aspect_ratio": "9:16",
+        "mode": "standard",
+        "scenes_per_image": 1,
+        "pen_text": "昆仑增长",
+        "include_key_text": True,
+        "include_subtitles": True,
+        "stroke_detail": "standard",
+    },
+}
+
+
 def install_machine_api(ns: dict[str, Any]) -> None:
     """Bind the machine API to the existing cs-board runtime without duplicating the pipeline."""
+
+    @router.get("/capabilities")
+    def capabilities() -> dict[str, Any]:
+        return {
+            "service": "kunlun-video-engine",
+            "api_version": "v1",
+            "pipeline_version": ns["PIPELINE_VERSION"],
+            "aspect_ratios": ["9:16", "16:9", "1:1"],
+            "modes": ["standard", "infographic"],
+            "presets": KUNLUN_PRESETS,
+            "endpoints": {
+                "create_job": "/api/v1/video-jobs",
+                "get_job": "/api/v1/video-jobs/{job_id}",
+                "voices": "/api/voices",
+                "styles": "/api/styles",
+                "health": "/api/health",
+            },
+        }
 
     @router.post("/video-jobs", response_model=VideoJobCreated)
     def create_video_job(payload: VideoJobRequest, request: Request) -> dict[str, Any]:

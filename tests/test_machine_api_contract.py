@@ -3,10 +3,11 @@ from webapp.machine_api import KUNLUN_PRESETS, VideoJobRequest
 
 def test_machine_api_defaults() -> None:
     payload = VideoJobRequest(script="这是一段用于测试昆仑视频引擎机器接口的完整中文脚本。", voice_id="voice-demo")
-    assert payload.aspect_ratio == "9:16"
-    assert payload.mode == "infographic"
-    assert payload.style == "极简商务涂鸦风"
-    assert payload.pen_text == "昆仑增长"
+    assert payload.preset == "short-video"
+    assert payload.aspect_ratio is None
+    assert payload.mode is None
+    assert payload.style is None
+    assert KUNLUN_PRESETS[payload.preset]["aspect_ratio"] == "9:16"
 
 
 def test_machine_api_accepts_metadata() -> None:

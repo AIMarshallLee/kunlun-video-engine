@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **仓库整合通知（2026-10-19）：本视频引擎已纳入 [昆仑增长统一内容工作台](https://github.com/AIMarshallLee/kunlun-content-factory) 的三合一产品路线。**
+> 后续工作台级开发集中在主仓库的 `modules/video-engine/`。已有文本源码与 MIT 授权文件已迁入；部分图片/演示资源仍通过固定版本补齐脚本迁移。**当前是整合中的内部试用路线，不代表完整自包含迁移或上线验收通过。**
+> 原仓库保留作为历史溯源和素材恢复基线。查看[主仓迁移台账](https://github.com/AIMarshallLee/kunlun-content-factory/blob/HEAD/docs/THREE-WAY-MIGRATION.md)。
+
 # 有温度出品｜白板声画工坊
 
 > 把你的表达，做成一支会说话的视频。
